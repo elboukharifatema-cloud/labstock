@@ -9,7 +9,3 @@ services:
         value: production
       - key: SECRET_KEY
         generateValue: true
-    disk:
-      name: labstock-data
-      mountPath: /data
-      sizeGB: 1
