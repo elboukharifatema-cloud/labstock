@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}Fournisseurs{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h1 class="page-title"><i class="bi bi-truck me-2 text-primary"></i>Fournisseurs</h1>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#supModal" onclick="openCreate()">
+    <i class="bi bi-plus-circle me-1"></i>Nouveau fournisseur
+  </button>
+</div>
+
+<div class="row g-3">
+  {% for s in suppliers %}
+  <div class="col-md-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start">
+          <div>
+            <h6 class="fw-bold mb-1">{{ s['name'] }}</h6>
+            <span class="badge bg-secondary mb-2">{{ s['product_count'] }} produit(s)</span>
+          </div>
+          <div class="d-flex gap-1">
+            <button class="btn btn-sm btn-outline-primary" onclick="openEdit({{ s|tojson }})">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="post" action="{{ url_for('suppliers.delete', id=s['id']) }}"
+                  onsubmit="return confirm('Supprimer ce fournisseur ?')">
+              <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+            </form>
+          </div>
+        </div>
+        <ul class="list-unstyled small text-muted mb-0">
+          {% if s['contact_person'] %}<li><i class="bi bi-person me-1"></i>{{ s['contact_person'] }}</li>{% endif %}
+          {% if s['phone'] %}<li><i class="bi bi-telephone me-1"></i>{{ s['phone'] }}</li>{% endif %}
+          {% if s['email'] %}<li><i class="bi bi-envelope me-1"></i>{{ s['email'] }}</li>{% endif %}
+          {% if s['address'] %}<li><i class="bi bi-geo-alt me-1"></i>{{ s['address'] }}</li>{% endif %}
+        </ul>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center text-muted py-5">
+    <i class="bi bi-truck fs-1 d-block mb-2"></i>Aucun fournisseur enregistré.
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="supModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="supModalTitle">Nouveau fournisseur</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="supForm" method="post">
+        <div class="modal-body row g-3">
+          <div class="col-12">
+            <label class="form-label">Nom <span class="text-danger">*</span></label>
+            <input type="text" name="name" id="s_name" class="form-control" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Contact</label>
+            <input type="text" name="contact_person" id="s_contact" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Téléphone</label>
+            <input type="text" name="phone" id="s_phone" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="email" name="email" id="s_email" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Adresse</label>
+            <input type="text" name="address" id="s_address" class="form-control">
+          </div>
+          <div class="col-12">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" id="s_notes" class="form-control" rows="2"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openCreate() {
+  document.getElementById('supModalTitle').textContent = 'Nouveau fournisseur';
+  document.getElementById('supForm').action = '{{ url_for("suppliers.create") }}';
+  document.getElementById('supForm').reset();
+}
+function openEdit(s) {
+  document.getElementById('supModalTitle').textContent = 'Modifier le fournisseur';
+  document.getElementById('supForm').action = '/suppliers/' + s.id + '/edit';
+  document.getElementById('s_name').value = s.name || '';
+  document.getElementById('s_contact').value = s.contact_person || '';
+  document.getElementById('s_phone').value = s.phone || '';
+  document.getElementById('s_email').value = s.email || '';
+  document.getElementById('s_address').value = s.address || '';
+  document.getElementById('s_notes').value = s.notes || '';
+  new bootstrap.Modal(document.getElementById('supModal')).show();
+}
+</script>
+{% endblock %}

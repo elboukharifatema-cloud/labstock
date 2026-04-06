@@ -1,0 +1,221 @@
+{% extends 'base.html' %}
+{% block title %}Produits{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <h1 class="page-title"><i class="bi bi-box-seam me-2 text-primary"></i>Produits / Réactifs</h1>
+    <p class="text-muted mb-0">{{ total }} produit(s) trouvé(s)</p>
+  </div>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal" onclick="openCreateModal()">
+    <i class="bi bi-plus-circle me-1"></i>Nouveau produit
+  </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+  <div class="card-body py-2">
+    <form method="get" class="row g-2 align-items-end">
+      <div class="col-12 col-md-4">
+        <input type="text" name="search" class="form-control form-control-sm" placeholder="Rechercher..." value="{{ search }}">
+      </div>
+      <div class="col-6 col-md-2">
+        <select name="category_id" class="form-select form-select-sm">
+          <option value="">Toutes catégories</option>
+          {% for c in categories %}
+          <option value="{{ c['id'] }}" {% if category_id == c['id']|string %}selected{% endif %}>{{ c['name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select name="supplier_id" class="form-select form-select-sm">
+          <option value="">Tous fournisseurs</option>
+          {% for s in suppliers %}
+          <option value="{{ s['id'] }}" {% if supplier_id == s['id']|string %}selected{% endif %}>{{ s['name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-6 col-md-2">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">Tous statuts</option>
+          <option value="ok"  {% if status == 'ok'  %}selected{% endif %}>En stock</option>
+          <option value="low" {% if status == 'low' %}selected{% endif %}>Stock bas</option>
+          <option value="out" {% if status == 'out' %}selected{% endif %}>Rupture</option>
+        </select>
+      </div>
+      <div class="col-6 col-md-2 d-flex gap-1">
+        <button type="submit" class="btn btn-primary btn-sm flex-fill"><i class="bi bi-search"></i></button>
+        <a href="{{ url_for('products.index') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-x"></i></a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Produit</th>
+            <th>Référence</th>
+            <th>Catégorie</th>
+            <th>Stock</th>
+            <th>Seuil</th>
+            <th>Statut</th>
+            <th>Localisation</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td>
+              <div class="fw-medium">{{ p['name'] }}</div>
+              {% if p['expiry_date'] %}<div class="small text-muted">Exp: {{ p['expiry_date'] }}</div>{% endif %}
+            </td>
+            <td><code class="small">{{ p['reference'] or '—' }}</code></td>
+            <td>
+              {% if p['category_name'] %}
+              <span class="badge" style="background:{{ p['category_color'] }}">{{ p['category_name'] }}</span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="fw-bold {% if p['quantity'] <= 0 %}text-danger{% elif p['quantity'] <= p['min_threshold'] %}text-warning{% else %}text-success{% endif %}">
+              {{ p['quantity']|int }} {{ p['unit'] }}
+            </td>
+            <td class="text-muted small">{{ p['min_threshold']|int }} {{ p['unit'] }}</td>
+            <td>
+              {% if p['quantity'] <= 0 %}
+                <span class="stock-badge stock-out">Rupture</span>
+              {% elif p['quantity'] <= p['min_threshold'] %}
+                <span class="stock-badge stock-low">Stock bas</span>
+              {% else %}
+                <span class="stock-badge stock-ok">OK</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted">{{ p['location'] or '—' }}</td>
+            <td class="text-end">
+              <a href="{{ url_for('products.detail', id=p['id']) }}" class="btn btn-sm btn-outline-secondary" title="Détails">
+                <i class="bi bi-eye"></i>
+              </a>
+              <button class="btn btn-sm btn-outline-primary" title="Modifier"
+                      onclick="openEditModal({{ p|tojson }})">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <form method="post" action="{{ url_for('products.delete', id=p['id']) }}" class="d-inline"
+                    onsubmit="return confirm('Archiver ce produit ?')">
+                <button class="btn btn-sm btn-outline-danger" title="Archiver"><i class="bi bi-archive"></i></button>
+              </form>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="8" class="text-center text-muted py-4">Aucun produit trouvé.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Pagination -->
+{% if pages > 1 %}
+<nav class="mt-3">
+  <ul class="pagination pagination-sm justify-content-center">
+    {% for p in range(1, pages+1) %}
+    <li class="page-item {% if p == page %}active{% endif %}">
+      <a class="page-link" href="?page={{ p }}&search={{ search }}&category_id={{ category_id }}&supplier_id={{ supplier_id }}&status={{ status }}">{{ p }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+</nav>
+{% endif %}
+
+<!-- Product Modal -->
+<div class="modal fade" id="productModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productModalTitle">Nouveau produit</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="productForm" method="post">
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-8">
+              <label class="form-label">Nom <span class="text-danger">*</span></label>
+              <input type="text" name="name" id="f_name" class="form-control" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Référence</label>
+              <input type="text" name="reference" id="f_reference" class="form-control" placeholder="REF-2024-001">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Catégorie</label>
+              <select name="category_id" id="f_category_id" class="form-select">
+                <option value="">— Aucune —</option>
+                {% for c in categories %}<option value="{{ c['id'] }}">{{ c['name'] }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Fournisseur</label>
+              <select name="supplier_id" id="f_supplier_id" class="form-select">
+                <option value="">— Aucun —</option>
+                {% for s in suppliers %}<option value="{{ s['id'] }}">{{ s['name'] }}</option>{% endfor %}
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Unité <span class="text-danger">*</span></label>
+              <input type="text" name="unit" id="f_unit" class="form-control" placeholder="mL, kit, boîte..." required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Seuil minimum <span class="text-danger">*</span></label>
+              <input type="number" name="min_threshold" id="f_min_threshold" class="form-control" value="5" min="0" step="0.1" required>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Localisation</label>
+              <input type="text" name="location" id="f_location" class="form-control" placeholder="Frigo A - Étagère 1">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Date de péremption</label>
+              <input type="date" name="expiry_date" id="f_expiry_date" class="form-control">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Notes</label>
+              <textarea name="notes" id="f_notes" class="form-control" rows="2"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openCreateModal() {
+  document.getElementById('productModalTitle').textContent = 'Nouveau produit';
+  document.getElementById('productForm').action = '{{ url_for("products.create") }}';
+  document.getElementById('productForm').reset();
+}
+function openEditModal(p) {
+  document.getElementById('productModalTitle').textContent = 'Modifier le produit';
+  document.getElementById('productForm').action = '/products/' + p.id + '/edit';
+  document.getElementById('f_name').value = p.name || '';
+  document.getElementById('f_reference').value = p.reference || '';
+  document.getElementById('f_category_id').value = p.category_id || '';
+  document.getElementById('f_supplier_id').value = p.supplier_id || '';
+  document.getElementById('f_unit').value = p.unit || '';
+  document.getElementById('f_min_threshold').value = p.min_threshold || 5;
+  document.getElementById('f_location').value = p.location || '';
+  document.getElementById('f_expiry_date').value = p.expiry_date || '';
+  document.getElementById('f_notes').value = p.notes || '';
+  new bootstrap.Modal(document.getElementById('productModal')).show();
+}
+</script>
+{% endblock %}

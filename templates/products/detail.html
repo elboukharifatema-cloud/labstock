@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}{{ product['name'] }}{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-start flex-wrap gap-2">
+  <div>
+    <a href="{{ url_for('products.index') }}" class="btn btn-sm btn-outline-secondary mb-2">
+      <i class="bi bi-arrow-left me-1"></i>Retour
+    </a>
+    <h1 class="page-title">{{ product['name'] }}</h1>
+    <code class="text-muted">{{ product['reference'] or 'Sans référence' }}</code>
+  </div>
+  <a href="{{ url_for('movements.create') }}?product_id={{ product['id'] }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-1"></i>Nouveau mouvement
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header"><h6 class="mb-0">Informations</h6></div>
+      <div class="card-body">
+        <dl class="row mb-0">
+          <dt class="col-6 text-muted">Catégorie</dt>
+          <dd class="col-6">{{ product['category_name'] or '—' }}</dd>
+          <dt class="col-6 text-muted">Fournisseur</dt>
+          <dd class="col-6">{{ product['supplier_name'] or '—' }}</dd>
+          <dt class="col-6 text-muted">Unité</dt>
+          <dd class="col-6">{{ product['unit'] }}</dd>
+          <dt class="col-6 text-muted">Localisation</dt>
+          <dd class="col-6">{{ product['location'] or '—' }}</dd>
+          <dt class="col-6 text-muted">Péremption</dt>
+          <dd class="col-6">{{ product['expiry_date'] or '—' }}</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="card mt-3">
+      <div class="card-header"><h6 class="mb-0">Stock actuel</h6></div>
+      <div class="card-body text-center">
+        <div class="display-4 fw-bold {% if product['quantity'] <= 0 %}text-danger{% elif product['quantity'] <= product['min_threshold'] %}text-warning{% else %}text-success{% endif %}">
+          {{ product['quantity']|int }}
+        </div>
+        <div class="text-muted">{{ product['unit'] }}</div>
+        <div class="mt-2">
+          {% if product['quantity'] <= 0 %}
+            <span class="stock-badge stock-out">Rupture de stock</span>
+          {% elif product['quantity'] <= product['min_threshold'] %}
+            <span class="stock-badge stock-low">Stock bas (min: {{ product['min_threshold']|int }})</span>
+          {% else %}
+            <span class="stock-badge stock-ok">Niveau OK</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if product['notes'] %}
+    <div class="card mt-3">
+      <div class="card-header"><h6 class="mb-0">Notes</h6></div>
+      <div class="card-body"><p class="mb-0 small">{{ product['notes'] }}</p></div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header"><h6 class="mb-0"><i class="bi bi-clock-history me-2"></i>Historique des mouvements</h6></div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr><th>Type</th><th>Quantité</th><th>Motif</th><th>Par</th><th>Date</th></tr>
+            </thead>
+            <tbody>
+              {% for m in movements %}
+              <tr>
+                <td>
+                  {% if m['movement_type'] == 'entry' %}
+                  <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-circle me-1"></i>Entrée</span>
+                  {% else %}
+                  <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-circle me-1"></i>Sortie</span>
+                  {% endif %}
+                </td>
+                <td class="fw-bold">{{ m['quantity']|int }} {{ product['unit'] }}</td>
+                <td class="small">{{ m['reason'] or '—' }}</td>
+                <td class="small text-muted">{{ m['user_name'] }}</td>
+                <td class="small text-muted">{{ m['movement_date'][:16] }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Aucun mouvement enregistré.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

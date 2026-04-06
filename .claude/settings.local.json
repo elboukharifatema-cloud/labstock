@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python:*)",
+      "Bash(where pip:*)",
+      "Bash(pip list:*)",
+      "Bash(ipconfig)",
+      "Bash(netstat -ano)"
+    ]
+  }
+}

@@ -1,0 +1,145 @@
+{% extends 'base.html' %}
+{% block title %}Nouveau mouvement{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('movements.index') }}" class="btn btn-sm btn-outline-secondary mb-2">
+    <i class="bi bi-arrow-left me-1"></i>Retour
+  </a>
+  <h1 class="page-title"><i class="bi bi-plus-circle me-2 text-primary"></i>Nouveau mouvement</h1>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card">
+      <div class="card-body">
+        <form method="post" action="{{ url_for('movements.create') }}">
+
+          <!-- Type -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Type de mouvement <span class="text-danger">*</span></label>
+            <div class="d-flex gap-3">
+              <div class="movement-type-card" id="card-entry" onclick="selectType('entry')">
+                <i class="bi bi-arrow-down-circle text-success fs-2"></i>
+                <div class="fw-semibold">Entrée</div>
+                <div class="small text-muted">Réception, commande</div>
+                <input type="radio" name="movement_type" value="entry" id="type-entry" class="d-none" required>
+              </div>
+              <div class="movement-type-card" id="card-exit" onclick="selectType('exit')">
+                <i class="bi bi-arrow-up-circle text-danger fs-2"></i>
+                <div class="fw-semibold">Sortie</div>
+                <div class="small text-muted">Utilisation, perte</div>
+                <input type="radio" name="movement_type" value="exit" id="type-exit" class="d-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Product -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Produit <span class="text-danger">*</span></label>
+            <select name="product_id" id="productSelect" class="form-select" required onchange="loadStock(this.value)">
+              <option value="">— Sélectionner un produit —</option>
+              {% for p in products %}
+              <option value="{{ p['id'] }}" data-qty="{{ p['quantity'] }}" data-unit="{{ p['unit'] }}">
+                {{ p['name'] }} {% if p['reference'] %}({{ p['reference'] }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+            <div id="stockInfo" class="mt-2 d-none">
+              <span class="badge bg-info-subtle text-info fs-6">
+                <i class="bi bi-boxes me-1"></i>Stock actuel: <strong id="stockQty"></strong> <span id="stockUnit"></span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Quantity -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Quantité <span class="text-danger">*</span></label>
+            <input type="number" name="quantity" id="quantity" class="form-control" min="0.01" step="0.01" required
+                   oninput="validateQty()">
+            <div id="qtyError" class="text-danger small mt-1 d-none">
+              <i class="bi bi-exclamation-triangle me-1"></i>Quantité supérieure au stock disponible.
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Motif</label>
+            <select name="reason" id="reasonSelect" class="form-select">
+              <option value="">— Sélectionner un motif —</option>
+            </select>
+          </div>
+
+          <!-- User -->
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Utilisateur <span class="text-danger">*</span></label>
+            <input type="text" name="user_name" class="form-control" placeholder="Nom du technicien / Dr." required>
+          </div>
+
+          <!-- Notes -->
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Notes</label>
+            <textarea name="notes" class="form-control" rows="2" placeholder="Observations facultatives..."></textarea>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-fill" id="submitBtn">
+              <i class="bi bi-check-circle me-1"></i>Enregistrer le mouvement
+            </button>
+            <a href="{{ url_for('movements.index') }}" class="btn btn-outline-secondary">Annuler</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ENTRY_REASONS = {{ entry_reasons | tojson }};
+const EXIT_REASONS  = {{ exit_reasons  | tojson }};
+let currentType = null;
+let currentStock = 0;
+
+function selectType(type) {
+  currentType = type;
+  document.getElementById('type-entry').checked = type === 'entry';
+  document.getElementById('type-exit').checked  = type === 'exit';
+  document.getElementById('card-entry').classList.toggle('selected', type === 'entry');
+  document.getElementById('card-exit').classList.toggle('selected',  type === 'exit');
+  const reasons = type === 'entry' ? ENTRY_REASONS : EXIT_REASONS;
+  const sel = document.getElementById('reasonSelect');
+  sel.innerHTML = '<option value="">— Sélectionner un motif —</option>';
+  reasons.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; sel.appendChild(o); });
+  validateQty();
+}
+
+function loadStock(id) {
+  if (!id) { document.getElementById('stockInfo').classList.add('d-none'); return; }
+  const opt = document.querySelector(`#productSelect option[value="${id}"]`);
+  if (opt) {
+    currentStock = parseFloat(opt.dataset.qty) || 0;
+    document.getElementById('stockQty').textContent = currentStock;
+    document.getElementById('stockUnit').textContent = opt.dataset.unit || '';
+    document.getElementById('stockInfo').classList.remove('d-none');
+    validateQty();
+  }
+}
+
+function validateQty() {
+  const qty = parseFloat(document.getElementById('quantity').value) || 0;
+  const err = document.getElementById('qtyError');
+  if (currentType === 'exit' && qty > currentStock && currentStock >= 0) {
+    err.classList.remove('d-none');
+    document.getElementById('submitBtn').disabled = true;
+  } else {
+    err.classList.add('d-none');
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+// Default to entry
+selectType('entry');
+</script>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends 'base.html' %}
+{% block title %}Tableau de bord{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-speedometer2 me-2 text-primary"></i>Tableau de bord</h1>
+  <p class="text-muted mb-0">Vue d'ensemble du stock — Laboratoire d'analyses médicales</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-blue">
+      <div class="kpi-icon"><i class="bi bi-box-seam"></i></div>
+      <div class="kpi-value">{{ kpis['total'] or 0 }}</div>
+      <div class="kpi-label">Total Produits</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-green">
+      <div class="kpi-icon"><i class="bi bi-check-circle"></i></div>
+      <div class="kpi-value">{{ kpis['ok_stock'] or 0 }}</div>
+      <div class="kpi-label">En stock</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-yellow">
+      <div class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></div>
+      <div class="kpi-value">{{ kpis['low_stock'] or 0 }}</div>
+      <div class="kpi-label">Stock bas</div>
+    </div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="kpi-card kpi-red">
+      <div class="kpi-icon"><i class="bi bi-x-circle"></i></div>
+      <div class="kpi-value">{{ kpis['out_of_stock'] or 0 }}</div>
+      <div class="kpi-label">Rupture de stock</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mb-4">
+  <!-- Chart -->
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-graph-up me-2 text-primary"></i>Mouvements — 7 derniers jours</h6>
+      </div>
+      <div class="card-body">
+        <canvas id="movementsChart" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- Categories -->
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-header">
+        <h6 class="mb-0"><i class="bi bi-tags me-2 text-primary"></i>Par catégorie</h6>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for cat in category_stats %}
+          <li class="list-group-item d-flex justify-content-between align-items-center px-3 py-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="cat-dot" style="background:{{ cat['color'] }}"></span>
+              <span class="small">{{ cat['name'] }}</span>
+            </div>
+            <div class="d-flex gap-1">
+              <span class="badge bg-secondary">{{ cat['product_count'] }}</span>
+              {% if cat['alert_count'] > 0 %}
+              <span class="badge bg-warning text-dark">{{ cat['alert_count'] }} alertes</span>
+              {% endif %}
+            </div>
+          </li>
+          {% else %}
+          <li class="list-group-item text-muted small px-3">Aucune catégorie</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Recent movements -->
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0"><i class="bi bi-clock-history me-2 text-primary"></i>Mouvements récents</h6>
+        <a href="{{ url_for('movements.index') }}" class="btn btn-sm btn-outline-primary">Voir tout</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Produit</th>
+                <th>Type</th>
+                <th>Qté</th>
+                <th>Par</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for m in recent_movements %}
+              <tr>
+                <td class="fw-medium">{{ m['product_name'] }}</td>
+                <td>
+                  {% if m['movement_type'] == 'entry' %}
+                  <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-down-circle me-1"></i>Entrée</span>
+                  {% else %}
+                  <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-up-circle me-1"></i>Sortie</span>
+                  {% endif %}
+                </td>
+                <td>{{ m['quantity']|int }} {{ m['unit'] }}</td>
+                <td class="text-muted small">{{ m['user_name'] }}</td>
+                <td class="text-muted small">{{ m['movement_date'][:10] }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="5" class="text-center text-muted py-3">Aucun mouvement</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Low stock alert -->
+  <div class="col-lg-4">
+    <div class="card border-warning">
+      <div class="card-header bg-warning-subtle d-flex justify-content-between align-items-center">
+        <h6 class="mb-0 text-warning"><i class="bi bi-exclamation-triangle me-2"></i>Alertes stock</h6>
+        <a href="{{ url_for('alerts.index') }}" class="btn btn-sm btn-warning">Voir tout</a>
+      </div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for p in low_stock_products %}
+          <li class="list-group-item px-3 py-2">
+            <div class="d-flex justify-content-between">
+              <span class="small fw-medium">{{ p['name'] }}</span>
+              {% if p['quantity'] == 0 %}
+              <span class="badge bg-danger">Rupture</span>
+              {% else %}
+              <span class="badge bg-warning text-dark">{{ p['quantity']|int }} {{ p['unit'] }}</span>
+              {% endif %}
+            </div>
+            <div class="small text-muted">Min: {{ p['min_threshold']|int }} {{ p['unit'] }}</div>
+          </li>
+          {% else %}
+          <li class="list-group-item text-center text-success py-3">
+            <i class="bi bi-check-circle me-1"></i>Tous les stocks sont OK
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const chartData = {{ chart_data | tojson }};
+const labels = chartData.map(d => d.day);
+const entries = chartData.map(d => d.entries);
+const exits = chartData.map(d => d.exits);
+
+new Chart(document.getElementById('movementsChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Entrées', data: entries, backgroundColor: 'rgba(16,185,129,0.7)', borderRadius: 4 },
+      { label: 'Sorties', data: exits,   backgroundColor: 'rgba(239,68,68,0.7)',  borderRadius: 4 }
+    ]
+  },
+  options: {
+    responsive: true,
+    plugins: { legend: { position: 'top' } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Catégories{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+  <h1 class="page-title"><i class="bi bi-tags me-2 text-primary"></i>Catégories</h1>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#catModal" onclick="openCreate()">
+    <i class="bi bi-plus-circle me-1"></i>Nouvelle catégorie
+  </button>
+</div>
+
+<div class="row g-3">
+  {% for c in categories %}
+  <div class="col-sm-6 col-lg-4">
+    <div class="card h-100">
+      <div class="card-body d-flex align-items-center gap-3">
+        <span class="cat-icon-lg" style="background:{{ c['color'] }}20; color:{{ c['color'] }}">
+          <i class="bi bi-tag-fill"></i>
+        </span>
+        <div class="flex-fill">
+          <div class="fw-semibold">{{ c['name'] }}</div>
+          <div class="small text-muted">{{ c['description'] or 'Aucune description' }}</div>
+          <div class="small mt-1"><span class="badge bg-secondary">{{ c['product_count'] }} produit(s)</span></div>
+        </div>
+        <div class="d-flex flex-column gap-1">
+          <button class="btn btn-sm btn-outline-primary" onclick="openEdit({{ c|tojson }})">
+            <i class="bi bi-pencil"></i>
+          </button>
+          <form method="post" action="{{ url_for('categories.delete', id=c['id']) }}"
+                onsubmit="return confirm('Supprimer cette catégorie ?')">
+            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="col-12 text-center text-muted py-5">
+    <i class="bi bi-tags fs-1 d-block mb-2"></i>Aucune catégorie. Créez-en une !
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="catModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="catModalTitle">Nouvelle catégorie</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="catForm" method="post">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nom <span class="text-danger">*</span></label>
+            <input type="text" name="name" id="c_name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Description</label>
+            <textarea name="description" id="c_description" class="form-control" rows="2"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Couleur</label>
+            <input type="color" name="color" id="c_color" class="form-control form-control-color" value="#3B82F6">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="submit" class="btn btn-primary">Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function openCreate() {
+  document.getElementById('catModalTitle').textContent = 'Nouvelle catégorie';
+  document.getElementById('catForm').action = '{{ url_for("categories.create") }}';
+  document.getElementById('catForm').reset();
+}
+function openEdit(c) {
+  document.getElementById('catModalTitle').textContent = 'Modifier la catégorie';
+  document.getElementById('catForm').action = '/categories/' + c.id + '/edit';
+  document.getElementById('c_name').value = c.name || '';
+  document.getElementById('c_description').value = c.description || '';
+  document.getElementById('c_color').value = c.color || '#3B82F6';
+  new bootstrap.Modal(document.getElementById('catModal')).show();
+}
+</script>
+{% endblock %}

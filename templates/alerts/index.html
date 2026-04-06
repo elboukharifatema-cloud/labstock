@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% block title %}Alertes{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1 class="page-title"><i class="bi bi-bell me-2 text-danger"></i>Alertes de stock</h1>
+  <p class="text-muted mb-0">Produits nécessitant une attention immédiate</p>
+</div>
+
+<!-- Low stock -->
+<h5 class="mb-3"><i class="bi bi-exclamation-triangle text-warning me-2"></i>Stock bas / Rupture
+  <span class="badge bg-warning text-dark ms-1">{{ low_stock|length }}</span>
+</h5>
+
+{% if low_stock %}
+<div class="row g-3 mb-4">
+  {% for p in low_stock %}
+  <div class="col-sm-6 col-lg-4">
+    <div class="card border-{% if p['quantity'] <= 0 %}danger{% else %}warning{% endif %} h-100">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+          <h6 class="fw-bold mb-0">{{ p['name'] }}</h6>
+          {% if p['quantity'] <= 0 %}
+          <span class="stock-badge stock-out">Rupture</span>
+          {% else %}
+          <span class="stock-badge stock-low">Stock bas</span>
+          {% endif %}
+        </div>
+        <div class="small text-muted mb-2">{{ p['category_name'] or 'Sans catégorie' }}</div>
+        <div class="progress mb-2" style="height:6px">
+          {% set pct = [[(p['quantity'] / p['min_threshold'] * 100)|int, 0]|max, 100]|min %}
+          <div class="progress-bar {% if p['quantity'] <= 0 %}bg-danger{% else %}bg-warning{% endif %}"
+               style="width:{{ pct }}%"></div>
+        </div>
+        <div class="d-flex justify-content-between small">
+          <span class="{% if p['quantity'] <= 0 %}text-danger fw-bold{% else %}text-warning fw-bold{% endif %}">
+            {{ p['quantity']|int }} {{ p['unit'] }}
+          </span>
+          <span class="text-muted">min: {{ p['min_threshold']|int }} {{ p['unit'] }}</span>
+        </div>
+        {% if p['location'] %}
+        <div class="small text-muted mt-1"><i class="bi bi-geo-alt me-1"></i>{{ p['location'] }}</div>
+        {% endif %}
+        <div class="mt-2">
+          <a href="{{ url_for('movements.create') }}" class="btn btn-sm btn-primary w-100">
+            <i class="bi bi-arrow-down-circle me-1"></i>Commander / Entrée
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-success mb-4">
+  <i class="bi bi-check-circle me-2"></i>Tous les niveaux de stock sont satisfaisants.
+</div>
+{% endif %}
+
+<!-- Expiry soon -->
+<h5 class="mb-3"><i class="bi bi-calendar-x text-danger me-2"></i>Péremption prochaine
+  <span class="badge bg-danger ms-1">{{ expiry_soon|length }}</span>
+</h5>
+
+{% if expiry_soon %}
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr><th>Produit</th><th>Catégorie</th><th>Stock</th><th>Date péremption</th><th>Jours restants</th></tr>
+        </thead>
+        <tbody>
+          {% for p in expiry_soon %}
+          <tr>
+            <td class="fw-medium">{{ p['name'] }}</td>
+            <td class="small text-muted">{{ p['category_name'] or '—' }}</td>
+            <td>{{ p['quantity']|int }} {{ p['unit'] }}</td>
+            <td>{{ p['expiry_date'] }}</td>
+            <td>
+              {% if p['days_left'] <= 0 %}
+              <span class="badge bg-danger">Périmé</span>
+              {% elif p['days_left'] <= 7 %}
+              <span class="badge bg-danger">{{ p['days_left'] }} jours</span>
+              {% elif p['days_left'] <= 14 %}
+              <span class="badge bg-warning text-dark">{{ p['days_left'] }} jours</span>
+              {% else %}
+              <span class="badge bg-info text-dark">{{ p['days_left'] }} jours</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-success">
+  <i class="bi bi-check-circle me-2"></i>Aucun produit n'expire dans les 30 prochains jours.
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,29 @@
+{
+  "name": "LabStock — Gestion de Stock Médical",
+  "short_name": "LabStock",
+  "description": "Application de gestion de stock pour laboratoire d'analyses médicales",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1e40af",
+  "orientation": "any",
+  "lang": "fr",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "screenshots": [],
+  "categories": ["medical", "productivity", "utilities"],
+  "shortcuts": [
+    {
+      "name": "Nouveau mouvement",
+      "url": "/movements/create",
+      "description": "Enregistrer une entrée ou sortie de stock"
+    },
+    {
+      "name": "Alertes",
+      "url": "/alerts",
+      "description": "Voir les alertes de stock"
+    }
+  ]
+}
